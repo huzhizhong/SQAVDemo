@@ -13,6 +13,8 @@
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import "Masonry.h"
+#import "UIViewExt.h"
+#import "SQRecordProgressView/SQRecordProgressView.h"
 
 typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
     VideoRecord = 0,
@@ -35,7 +37,7 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
 @property (strong, nonatomic) MPMoviePlayerViewController *playerVC;
 
 //UI
-@property (strong, nonatomic) UIView *playbgView;
+//@property (strong, nonatomic) UIView *playbgView;
 
 
 @end
@@ -64,26 +66,87 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
         [self.view.layer insertSublayer:[self.recordEngine previewLayer] atIndex:0];
     }
     [self.recordEngine startUp];
+    [self makeView];
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
     self.allowRecord = YES;
-    [self makeView];
+   
 }
 
 #pragma mark - ****************创建视图
 - (void)makeView
 {
+    
+    UIView *navBgView = [[UIView alloc] init];
+    navBgView.backgroundColor = [UIColor redColor];
+    navBgView.frame = CGRectMake(0, 20, self.view.frame.size.width, 55);
+    [self.view addSubview:navBgView];
+    
+    //取消录像
+    UIImage *backImage = [UIImage imageNamed:@"closeVideo"];
+    UIButton *backButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    [backButton setImage:backImage forState:UIControlStateNormal];
+    backButton.frame = CGRectMake(15, 10, 40, 35);
+    [backButton addTarget:self action:@selector(backButtonClick) forControlEvents:UIControlEventTouchUpInside];
+    [navBgView addSubview:backButton];
+    
+    //闪光灯
+    UIButton *flashLightBT = [UIButton buttonWithType:UIButtonTypeCustom];
+    [flashLightBT setImage:[UIImage imageNamed:@"flashlightOff"] forState:UIControlStateNormal];
+    flashLightBT.frame = CGRectMake(backButton.right+80, 10, 40, 35);
+    [flashLightBT addTarget:self action:@selector(flashLightAction:) forControlEvents:UIControlEventTouchUpInside];
+    [navBgView addSubview:flashLightBT];
+    self.flashLightBT = flashLightBT;
+
+    //变换摄像头
+    UIButton *changeCameraBT = [UIButton buttonWithType:UIButtonTypeCustom];
+    [changeCameraBT setImage:[UIImage imageNamed:@"changeCamera"] forState:UIControlStateNormal];
+    changeCameraBT.frame = CGRectMake(flashLightBT.right+80, 10, 40, 35);
+    [changeCameraBT addTarget:self action:@selector(changeCameraAction:) forControlEvents:UIControlEventTouchUpInside];
+    [navBgView addSubview:changeCameraBT];
+    self.changeCameraBT = changeCameraBT;
+    
+    //下一步
+    UIButton *recordNextBT = [UIButton buttonWithType:UIButtonTypeCustom];
+    [recordNextBT setImage:[UIImage imageNamed:@"videoNext"] forState:UIControlStateNormal];
+    recordNextBT.frame = CGRectMake(changeCameraBT.right+80, 10, 40, 35);
+    [recordNextBT addTarget:self action:@selector(recordNextAction:) forControlEvents:UIControlEventTouchUpInside];
+    [navBgView addSubview:recordNextBT];
+    self.recordNextBT = recordNextBT;
+
+    
     UIView *playbgView = [[UIView alloc] init];
-    playbgView.backgroundColor = [UIColor redColor];
-    playbgView.frame = CGRectMake(0, self.view.frame.size.height-99-146, self.view.frame.size.width, 146);
-    self.playbgView = playbgView;
+    playbgView.backgroundColor = [UIColor clearColor];
+    playbgView.frame = CGRectMake(0, self.view.frame.size.height-245, self.view.frame.size.width, 245);
+//    self.playbgView = playbgView;
     [self.view addSubview:playbgView];
     
+    UIButton *recordBt = [UIButton buttonWithType:UIButtonTypeCustom];
+    [recordBt setImage:[UIImage imageNamed:@"videoRecord"] forState:UIControlStateNormal];
+    recordBt.frame = CGRectMake((self.view.frame.size.width-80)/2, playbgView.height-120, 80, 80);
+    [recordBt addTarget:self action:@selector(recordAction:) forControlEvents:UIControlEventTouchUpInside];
+    [playbgView addSubview:recordBt];
+    self.recordBt = recordBt;
+
+    SQRecordProgressView *progressView = [[SQRecordProgressView alloc] init];
+    progressView.frame = CGRectMake(0, self.recordBt.top-10, self.view.frame.size.width, 5);
+    progressView.progress = 0;
+    progressView.progressBgColor = [UIColor orangeColor];
+    progressView.progressColor = [UIColor redColor];
+    progressView.loadProgress = self.view.frame.size.width;
+    progressView.loadProgressColor = [UIColor yellowColor];
+    [playbgView addSubview:progressView];
+    self.progressView = progressView;
     
     [self.view updateConstraintsIfNeeded];
+}
+
+- (void) backButtonClick
+{
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 #pragma mark - **************** 跳转布局
@@ -163,7 +226,6 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
             NSURL *videoUrl = [info objectForKey:UIImagePickerControllerMediaURL];
             __weak typeof(self) weakSelf = self;
             [self.recordEngine changeMovToMp4:videoUrl dataBlock:^(UIImage *movieImage) {
-                
                 [weakSelf.moviePicker dismissViewControllerAnimated:YES completion:^{
                     weakSelf.playerVC = [[MPMoviePlayerViewController alloc] initWithContentURL:[NSURL fileURLWithPath:weakSelf.recordEngine.videoPath]];
                     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(playVideoFinished:) name:MPMoviePlayerPlaybackDidFinishNotification object:[weakSelf.playerVC moviePlayer]];
@@ -198,8 +260,10 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
         self.flashLightBT.selected = !self.flashLightBT.selected;
         if (self.flashLightBT.selected == YES) {
             [self.recordEngine openFlashLight];
+            [self.flashLightBT setImage:[UIImage imageNamed:@"flashlightOn"] forState:UIControlStateNormal];
         }else {
             [self.recordEngine closeFlashLight];
+            [self.flashLightBT setImage:[UIImage imageNamed:@"flashlightOff"] forState:UIControlStateNormal];
         }
     }
 }
@@ -258,11 +322,14 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
         if (self.recordBt.selected) {
             if (self.recordEngine.isCapturing) {
                 [self.recordEngine resumeCapture];
+                [self.recordBt setImage:[UIImage imageNamed:@"videoPause"] forState:UIControlStateNormal];
             }else {
                 [self.recordEngine startCapture];
+                [self.recordBt setImage:[UIImage imageNamed:@"videoPause"] forState:UIControlStateNormal];
             }
         }else {
             [self.recordEngine pauseCapture];
+            [self.recordBt setImage:[UIImage imageNamed:@"videoRecord"] forState:UIControlStateNormal];
         }
         [self adjustViewFrame];
     }
