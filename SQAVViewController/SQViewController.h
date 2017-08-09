@@ -1,5 +1,5 @@
 //
-//  ViewController.h
+//  SQViewController.h
 //  SQAVDemo
 //
 //  Created by tgjr-Hzz on 2017/8/8.
@@ -8,8 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-@interface ViewController : UIViewController
-
+@interface SQViewController : UIViewController
 
 @end
-
