@@ -15,6 +15,7 @@
 #import "Masonry.h"
 #import "UIViewExt.h"
 #import "SQRecordProgressView/SQRecordProgressView.h"
+#import "SQPlayVideoVC.h"
 
 typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
     VideoRecord = 0,
@@ -51,12 +52,20 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    [self.navigationController setNavigationBarHidden:YES animated:YES];
+    [self.navigationController setNavigationBarHidden:YES animated:animated];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
     [self.recordEngine shutdown];
+
+}
+
+-(void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [self.navigationController setNavigationBarHidden:NO animated:animated];
+
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -140,6 +149,14 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
     progressView.loadProgressColor = [UIColor yellowColor];
     [playbgView addSubview:progressView];
     self.progressView = progressView;
+    
+    UIButton *locationVideoBT = [UIButton buttonWithType:UIButtonTypeCustom];
+    [locationVideoBT setTitle:@"本地视频" forState:UIControlStateNormal];
+    locationVideoBT.frame = CGRectMake((self.view.frame.size.width-80)/2+100, playbgView.height-120, 80, 80);
+    [locationVideoBT addTarget:self action:@selector(locationVideoAction:) forControlEvents:UIControlEventTouchUpInside];
+    [playbgView addSubview:locationVideoBT];
+    self.locationVideoBT = locationVideoBT;
+
     
     [self.view updateConstraintsIfNeeded];
 }
@@ -227,12 +244,17 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
             __weak typeof(self) weakSelf = self;
             [self.recordEngine changeMovToMp4:videoUrl dataBlock:^(UIImage *movieImage) {
                 [weakSelf.moviePicker dismissViewControllerAnimated:YES completion:^{
-                    weakSelf.playerVC = [[MPMoviePlayerViewController alloc] initWithContentURL:[NSURL fileURLWithPath:weakSelf.recordEngine.videoPath]];
-                    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(playVideoFinished:) name:MPMoviePlayerPlaybackDidFinishNotification object:[weakSelf.playerVC moviePlayer]];
-                    [[weakSelf.playerVC moviePlayer] prepareToPlay];
-                    
-                    [weakSelf presentMoviePlayerViewControllerAnimated:weakSelf.playerVC];
-                    [[weakSelf.playerVC moviePlayer] play];
+//                    weakSelf.playerVC = [[MPMoviePlayerViewController alloc] initWithContentURL:[NSURL fileURLWithPath:weakSelf.recordEngine.videoPath]];
+//                    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(playVideoFinished:) name:MPMoviePlayerPlaybackDidFinishNotification object:[weakSelf.playerVC moviePlayer]];
+//                    [[weakSelf.playerVC moviePlayer] prepareToPlay];
+//                    
+//                    [weakSelf presentMoviePlayerViewControllerAnimated:weakSelf.playerVC];
+//                    [[weakSelf.playerVC moviePlayer] play];
+                        SQPlayVideoVC *vc = [[SQPlayVideoVC alloc] init];
+                        vc.videoPath = _recordEngine.videoPath;
+                        [self presentViewController:vc animated:YES completion:nil];
+                        
+
                 }];
             }];
         }
@@ -286,12 +308,17 @@ typedef NS_ENUM(NSUInteger, UploadVieoStyle) {
     if (_recordEngine.videoPath.length > 0) {
         __weak typeof(self) weakSelf = self;
         [self.recordEngine stopCaptureHandler:^(UIImage *movieImage) {
-            weakSelf.playerVC = [[MPMoviePlayerViewController alloc] initWithContentURL:[NSURL fileURLWithPath:weakSelf.recordEngine.videoPath]];
-            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(playVideoFinished:) name:MPMoviePlayerPlaybackDidFinishNotification object:[weakSelf.playerVC moviePlayer]];
-            [[weakSelf.playerVC moviePlayer] prepareToPlay];
+//            weakSelf.playerVC = [[MPMoviePlayerViewController alloc] initWithContentURL:[NSURL fileURLWithPath:weakSelf.recordEngine.videoPath]];
+//            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(playVideoFinished:) name:MPMoviePlayerPlaybackDidFinishNotification object:[weakSelf.playerVC moviePlayer]];
+//            [[weakSelf.playerVC moviePlayer] prepareToPlay];
+//            
+//            [weakSelf presentMoviePlayerViewControllerAnimated:weakSelf.playerVC];
+//            [[weakSelf.playerVC moviePlayer] play];
             
-            [weakSelf presentMoviePlayerViewControllerAnimated:weakSelf.playerVC];
-            [[weakSelf.playerVC moviePlayer] play];
+            SQPlayVideoVC *vc = [[SQPlayVideoVC alloc] init];
+            vc.videoPath = _recordEngine.videoPath;
+            [self presentViewController:vc animated:YES completion:nil];
+
         }];
     }else {
         NSLog(@"请先录制视频~");
